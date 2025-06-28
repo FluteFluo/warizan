@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>わり算ひっさん トレーニング（レベル選択版）</title>
+    <style>
+        body { font-family: 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif; background-color: #f0f8ff; color: #333; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; user-select: none; }
+        .app-container { width: 100%; max-width: 400px; background-color: #fff; border-radius: 20px; box-shadow: 0 8px 16px rgba(0,0,0,0.1); padding: 20px; text-align: center; box-sizing: border-box; }
+        h1 { font-size: 24px; color: #007bff; margin-bottom: 20px; }
+        
+        /* ▼▼▼ レベル選択画面のスタイル ▼▼▼ */
+        #level-selection-container { display: block; }
+        #main-app-container { display: none; }
+        .level-options { text-align: left; margin: 20px auto; max-width: 250px; font-size: 18px;}
+        .level-options label { display: block; margin-bottom: 15px; cursor: pointer; padding: 5px; border-radius: 5px; transition: background-color 0.2s; }
+        .level-options label:hover { background-color: #f0f8ff; }
+        .level-options input[type="checkbox"] { width: 20px; height: 20px; margin-right: 10px; vertical-align: middle; }
+        #start-game-btn { padding: 15px 30px; font-size: 18px; background-color: #28a745; color: white; border: none; border-radius: 10px; cursor: pointer; box-shadow: 0 4px #218838; }
+        #start-game-btn:active { transform: translateY(2px); box-shadow: 0 2px #218838; }
+        hr { border: 0; border-top: 1px solid #ccc; margin: 20px 0; }
+
+        .hissan-area { position: relative; height: 350px; }
+        #hissan-grid { position: relative; display: grid; grid-template-rows: repeat(9, 40px); justify-content: center; transition: grid-template-columns 0.3s; }
+        #hissan-grid > * { display: flex; justify-content: center; align-items: center; font-size: 28px; font-weight: bold; }
+        #hissan-grid span { width: 40px; height: 40px; border-radius: 5px; transition: all 0.3s; }
+
+        .active-input { background-color: #fffacd !important; border: 2px solid #ff8c00; box-shadow: 0 0 10px #fffacd; }
+        .process-line { width: 100%; height: 2px; background-color: #333; align-self: end; margin-bottom: 2px; }
+        
+        .character-area { display: flex; align-items: center; justify-content: center; margin: 10px 0; min-height: 80px; }
+        .character-emoji { font-size: 50px; width: 60px; height: 60px; margin-right: 10px; display: flex; align-items: center; justify-content: center; transition: transform 0.1s ease; }
+        .message-box { position: relative; background-color: #e0efff; border-radius: 10px; padding: 10px 15px; flex-grow: 1; text-align: left; font-size: 16px; line-height: 1.4; }
+        .message-box::before { content: ''; position: absolute; left: -18px; top: 20px; border: 10px solid transparent; border-right-color: #e0efff; }
+        
+        .correct-animation { animation: bounce 0.5s ease; }
+        @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+
+        .keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 20px; }
+        .keypad button { padding: 15px; font-size: 20px; font-weight: bold; border: none; border-radius: 10px; background-color: #f0f0f0; box-shadow: 0 4px #ccc; cursor: pointer; transition: all 0.1s; }
+        .keypad button:active { transform: translateY(2px); box-shadow: 0 2px #ccc; }
+        .keypad .action-btn { background-color: #007bff; color: white; box-shadow: 0 4px #0056b3; }
+        .keypad .action-btn:active { box-shadow: 0 2px #0056b3; }
+        .keypad .clear-btn { background-color: #ffc107; box-shadow: 0 4px #d39e00; }
+        .keypad .clear-btn:active { box-shadow: 0 2px #d39e00; }
+        #next-problem-btn { display: none; margin-top: 20px; padding: 15px 30px; font-size: 18px; background-color: #28a745; color: white; border: none; border-radius: 10px; cursor: pointer; box-shadow: 0 4px #218838; }
+        #next-problem-btn:active { transform: translateY(2px); box-shadow: 0 2px #218838; }
+
+        .reward-area { margin-top: 25px; padding: 10px; border: 2px dashed #ffc107; border-radius: 10px; background-color: #fffaf0; }
+        .reward-area h2 { font-size: 18px; color: #ff8c00; margin: 0 0 10px 0; font-weight: bold; }
+        .stamp-area { display: flex; flex-wrap: wrap; gap: 5px; justify-content: center; min-height: 30px; }
+        .stamp-area .stamp { font-size: 28px; animation: stamp-appear 0.5s cubic-bezier(0.18, 0.89, 0.32, 1.28); }
+        @keyframes stamp-appear { from { transform: scale(0) rotate(-180deg); opacity: 0; } to { transform: scale(1) rotate(0deg); opacity: 1; } }
+    </style>
+</head>
+<body>
+    <!-- ▼▼▼ レベル選択画面 ▼▼▼ -->
+    <div id="level-selection-container" class="app-container">
+        <h1>レベルをえらんでね</h1>
+        <div class="level-options">
+            <label><input type="checkbox" class="level-option" value="2d1d" checked> 2桁 ÷ 1桁</label>
+            <label><input type="checkbox" class="level-option" value="2d2d" checked> 2桁 ÷ 2桁</label>
+            <label><input type="checkbox" class="level-option" value="3d1d" checked> 3桁 ÷ 1桁</label>
+            <label><input type="checkbox" class="level-option" value="3d2d" checked> 3桁 ÷ 2桁</label>
+            <hr>
+            <label><input type="checkbox" id="level-all" checked> すべて</label>
+        </div>
+        <button id="start-game-btn">このレベルではじめる！</button>
+    </div>
+
+    <!-- ▼▼▼ メインのアプリ画面（初期状態は非表示） ▼▼▼ -->
+    <div id="main-app-container" class="app-container">
+        <h1>わり算ひっさん トレーニング</h1>
+        <div class="hissan-area"> <div id="hissan-grid"></div> </div>
+        <div class="character-area"> <span class="character-emoji" id="character-emoji">🤔</span> <p class="message-box" id="message-box">さあ、わり算の筆算をはじめよう！</p> </div>
+        <div id="keypad-area">
+            <div class="keypad">
+                <button onclick="handleKeyPress('1')">1</button><button onclick="handleKeyPress('2')">2</button><button onclick="handleKeyPress('3')">3</button>
+                <button onclick="handleKeyPress('4')">4</button><button onclick="handleKeyPress('5')">5</button><button onclick="handleKeyPress('6')">6</button>
+                <button onclick="handleKeyPress('7')">7</button><button onclick="handleKeyPress('8')">8</button><button onclick="handleKeyPress('9')">9</button>
+                <button class="clear-btn" onclick="handleBackspace()">けす</button><button onclick="handleKeyPress('0')">0</button><button class="action-btn" onclick="checkAnswer()">けってい</button>
+            </div>
+        </div>
+        <button id="next-problem-btn" onclick="startNewProblem()">つぎのもんだいへ！</button>
+        <div class="reward-area"> <h2>がんばりシール</h2> <div id="stamp-area" class="stamp-area"></div> </div>
+    </div>
+
+    <script>
+        // ▼▼▼ グローバル変数の定義 ▼▼▼
+        let state = {};
+        let selectedLevels = [];
+        let totalCorrect = 0;
+        const stampEmojis = ['🌟', '💖', '👍', '🌸', '🚀', '✅', '💯', '🎯', '💡', '🏆'];
+
+        const elements = {
+            levelSelectionContainer: document.getElementById('level-selection-container'),
+            mainAppContainer: document.getElementById('main-app-container'),
+            grid: document.getElementById('hissan-grid'),
+            messageBox: document.getElementById('message-box'),
+            character: document.getElementById('character-emoji'),
+            nextProblemBtn: document.getElementById('next-problem-btn'),
+            keypadArea: document.getElementById('keypad-area'),
+            stampArea: document.getElementById('stamp-area'),
+            activeInput: null,
+            spans: {}
+        };
+        const characterEmojis = { normal: "🤔", correct: "🎉", wrong: "😥" };
+
+        // ▼▼▼ レベル選択機能のセットアップ ▼▼▼
+        function setupLevelSelection() {
+            const allCheckbox = document.getElementById('level-all');
+            const individualCheckboxes = document.querySelectorAll('.level-option');
+            const startBtn = document.getElementById('start-game-btn');
+
+            allCheckbox.addEventListener('change', () => {
+                individualCheckboxes.forEach(cb => { cb.checked = allCheckbox.checked; });
+            });
+
+            individualCheckboxes.forEach(cb => {
+                cb.addEventListener('change', () => {
+                    const allChecked = Array.from(individualCheckboxes).every(c => c.checked);
+                    allCheckbox.checked = allChecked;
+                });
+            });
+
+            startBtn.addEventListener('click', () => {
+                selectedLevels = [];
+                document.querySelectorAll('.level-option:checked').forEach(cb => {
+                    selectedLevels.push(cb.value);
+                });
+
+                if (selectedLevels.length === 0) {
+                    alert('レベルをひとついじょう えらんでね！');
+                    return;
+                }
+                
+                elements.levelSelectionContainer.style.display = 'none';
+                elements.mainAppContainer.style.display = 'block';
+                startNewProblem();
+            });
+        }
+        
+        function addStamp() {
+            const stamp = document.createElement('span');
+            stamp.className = 'stamp';
+            stamp.textContent = stampEmojis[Math.floor(Math.random() * stampEmojis.length)];
+            elements.stampArea.appendChild(stamp);
+        }
+
+        function generateProblem() {
+            // ▼▼▼ 選択されたレベルからランダムに問題タイプを選ぶ ▼▼▼
+            const problemType = selectedLevels[Math.floor(Math.random() * selectedLevels.length)];
+            let w, r, s, a;
+            
+            if (problemType === '2d1d') {
+                while (true) { w = Math.floor(Math.random() * 8) + 2; s = Math.floor(Math.random() * 39) + 11; a = Math.random() < 0.5 ? Math.floor(Math.random() * (w - 1)) + 1 : 0; r = w * s + a; if (r < 100 && Math.floor(r / 10) >= w) return { wararerukazu: r, warukazu: w, type: '2d1d' }; }
+            } else if (problemType === '2d2d') {
+                while (true) { w = Math.floor(Math.random() * 89) + 11; r = Math.floor(Math.random() * 89) + 11; if (r >= w) return { wararerukazu: r, warukazu: w, type: '2d2d' }; }
+            } else if (problemType === '3d1d') {
+                while (true) { w = Math.floor(Math.random() * 8) + 2; s = Math.floor(Math.random() * 399) + 101; a = Math.random() < 0.5 ? Math.floor(Math.random() * (w - 1)) + 1 : 0; r = w * s + a; if (r < 1000 && Math.floor(r / 100) >= w) return { wararerukazu: r, warukazu: w, type: '3d1d' }; }
+            } else { // 3d2d
+                while (true) { w = Math.floor(Math.random() * 89) + 11; r = Math.floor(Math.random() * 899) + 101; if (r >= w) return { wararerukazu: r, warukazu: w, type: '3d2d' }; }
+            }
+        }
+
+        // --- (ここから下の関数は、昨日までのものとほぼ同じなので省略します) ---
+        
+        function startNewProblem() {
+            const problem = generateProblem();
+            let answers = {};
+            const r = problem.wararerukazu; const w = problem.warukazu;
+
+            if (problem.type === '3d2d') {
+                const r_100 = Math.floor(r / 100); const r_10 = Math.floor((r % 100) / 10); const r_1 = r % 10;
+                answers.isShou2Keta = Math.floor(r / 10) >= w;
+                if (answers.isShou2Keta) { // 商が2桁
+                    const r_top2 = Math.floor(r/10); answers.s10 = Math.floor(r_top2 / w); answers.k1 = answers.s10 * w; answers.h1 = r_top2 - answers.k1;
+                    answers.o1 = answers.h1 * 10 + r_1; answers.s1 = Math.floor(answers.o1 / w); answers.k2 = answers.s1 * w; answers.amari = answers.o1 - answers.k2;
+                } else { // 商が1桁
+                    answers.s1 = Math.floor(r / w); answers.k1 = answers.s1 * w; answers.amari = r - answers.k1;
+                }
+                answers.finalShou = Math.floor(r/w);
+            } else if (problem.type === '3d1d') {
+                const r100 = Math.floor(r/100); const r10 = Math.floor((r%100)/10); const r1 = r%10;
+                answers.s100 = Math.floor(r100 / w); answers.k1 = answers.s100 * w; answers.h1 = r100 - answers.k1;
+                answers.o1 = answers.h1 * 10 + r10; answers.s10 = Math.floor(answers.o1 / w);
+                answers.k2 = answers.s10 * w; answers.h2 = answers.o1 - answers.k2;
+                answers.o2 = answers.h2 * 10 + r1; answers.s1 = Math.floor(answers.o2 / w);
+                answers.k3 = answers.s1 * w; answers.amari = answers.o2 - answers.k3;
+                answers.finalShou = Math.floor(r / w);
+            } else if (problem.type === '2d1d') {
+                const r10 = Math.floor(r / 10); answers.s10 = Math.floor(r10 / w); answers.k1 = answers.s10 * w;
+                answers.h1 = r10 - answers.k1; answers.o1 = answers.h1 * 10 + (r % 10);
+                answers.s1 = Math.floor(answers.o1 / w); answers.k2 = answers.s1 * w;
+                answers.amari = answers.o1 - answers.k2; answers.finalShou = Math.floor(r / w);
+            } else { // 2d2d
+                answers = { shou: Math.floor(r/w), kakeru: Math.floor(r/w) * w, amari: r % w };
+            }
+            state = { problem, step: 1, currentInput: "", answers };
+            initializeUI(); updateStep();
+        }
+        
+        function placeElement(content, row, col, id = null, colspan = 1, type = 'span') {
+            const el = document.createElement(type); el.textContent = content;
+            el.style.gridRow = String(row); el.style.gridColumn = `${col} / span ${colspan}`;
+            if (id) { el.id = id; elements.spans[id] = el; }
+            elements.grid.appendChild(el); return el;
+        }
+
+        function initializeUI() {
+            elements.grid.innerHTML = ''; elements.spans = {};
+            const p = state.problem; const a = state.answers;
+            const r_str = String(p.wararerukazu); const w_str = String(p.warukazu);
+
+            if (p.type === '3d2d') {
+                elements.grid.style.gridTemplateColumns = '40px 40px 30px 40px 40px 40px 20px 40px';
+                if (a.isShou2Keta) { placeElement('', 1, 5, 's10'); placeElement('', 1, 6, 's1'); }
+                else { placeElement('', 1, 6, 's1'); }
+                placeElement('…', 1, 7); placeElement('', 1, 8, 'amari_output');
+                placeElement(w_str[0], 2, 1); placeElement(w_str[1], 2, 2); placeElement(')', 2, 3).style.fontSize = '50px';
+                placeElement(r_str[0], 2, 4); placeElement(r_str[1], 2, 5); placeElement(r_str[2], 2, 6);
+                placeElement('', 1, 4, null, 5, 'div').className = 'process-line';
+            } else if (p.type === '3d1d') {
+                elements.grid.style.gridTemplateColumns = '50px 30px 40px 40px 40px 20px 40px';
+                placeElement('', 1, 3, 's100'); placeElement('', 1, 4, 's10'); placeElement('', 1, 5, 's1');
+                placeElement('…', 1, 6); placeElement('', 1, 7, 'amari_output');
+                placeElement(w_str, 2, 1); placeElement(')', 2, 2).style.fontSize = '50px';
+                placeElement(r_str[0], 2, 3); placeElement(r_str[1], 2, 4); placeElement(r_str[2], 2, 5);
+                placeElement('', 1, 3, null, 5, 'div').className = 'process-line';
+            } else if (p.type === '2d1d') {
+                elements.grid.style.gridTemplateColumns = '50px 30px 40px 40px 20px 40px';
+                placeElement('', 1, 3, 's10'); placeElement('', 1, 4, 's1');
+                placeElement('…', 1, 5); placeElement('', 1, 6, 'amari_output');
+                placeElement(w_str, 2, 1); placeElement(')', 2, 2).style.fontSize = '50px';
+                placeElement(r_str[0], 2, 3); placeElement(r_str[1], 2, 4);
+                placeElement('', 1, 3, null, 4, 'div').className = 'process-line';
+            } else { // 2d2d
+                elements.grid.style.gridTemplateColumns = '40px 40px 30px 40px 40px 20px 40px';
+                placeElement('', 1, 5, 's1');
+                placeElement('…', 1, 6); placeElement('', 1, 7, 'amari_output');
+                placeElement(w_str[0], 2, 1); placeElement(w_str[1], 2, 2); placeElement(')', 2, 3).style.fontSize = '50px';
+                placeElement(r_str[0], 2, 4); placeElement(r_str[1], 2, 5);
+                placeElement('', 1, 4, null, 4, 'div').className = 'process-line';
+            }
+            elements.keypadArea.style.display = 'block'; elements.nextProblemBtn.style.display = 'none';
+        }
+        
+        function updateStep() {
+            state.currentInput = "";
+            if (elements.activeInput) elements.activeInput.classList.remove('active-input');
+            elements.activeInput = null; let targetElement, message;
+            const { problem, step, answers } = state; const r_str = String(problem.wararerukazu);
+
+            if (problem.type === '3d2d') {
+                if (answers.isShou2Keta) {
+                    switch(step) {
+                        case 1: targetElement=elements.spans['s10']; message=`① たてる:${Math.floor(problem.wararerukazu/10)}÷${problem.warukazu}は?`; break;
+                        case 2: placeElement('',3,4,'k1_10');placeElement('',3,5,'k1_1');targetElement=elements.spans['k1_10']; message=`② かける:${answers.s10}×${problem.warukazu}は?`; break;
+                        case 3: placeElement('',3,4,null,2,'div').className='process-line';placeElement('',4,4,'h1_10');placeElement('',4,5,'h1_1');targetElement=elements.spans['h1_10']; message=`③ ひく:${Math.floor(problem.wararerukazu/10)}-${answers.k1}は?`; break;
+                        case 4: placeElement(r_str[2],4,6); updateMessage(`④ おろす:${r_str[2]}`, 'normal'); setTimeout(()=>{state.step++; updateStep();}, 1000); return;
+                        case 5: targetElement=elements.spans['s1']; message=`① たてる:${answers.o1}÷${problem.warukazu}は?`; break;
+                        case 6: placeElement('',5,5,'k2_10');placeElement('',5,6,'k2_1');targetElement=elements.spans['k2_10']; message=`② かける:${answers.s1}×${problem.warukazu}は?`; break;
+                        case 7: placeElement('',5,5,null,2,'div').className='process-line';placeElement('',6,6,'amari');targetElement=elements.spans['amari']; message=`③ ひく:${answers.o1}-${answers.k2}は?`; break;
+                        case 8: message = answers.amari > 0 ? `やったね！${answers.finalShou} あまり ${answers.amari}！` : `やったね！答えは ${answers.finalShou}！`; if(answers.amari > 0) elements.spans['amari_output'].textContent = answers.amari; updateMessage(message, 'correct'); elements.keypadArea.style.display = 'none'; elements.nextProblemBtn.style.display = 'block'; return;
+                    }
+                } else {
+                    switch(step) {
+                        case 1: targetElement=elements.spans['s1']; message=`① たてる:${problem.wararerukazu}÷${problem.warukazu}は?`; break;
+                        case 2: placeElement('',3,4,'k1_100');placeElement('',3,5,'k1_10');placeElement('',3,6,'k1_1');targetElement=elements.spans['k1_100']; message=`② かける:${answers.s1}×${problem.warukazu}は?`; break;
+                        case 3: placeElement('',3,4,null,3,'div').className='process-line';placeElement('',4,5,'amari_10');placeElement('',4,6,'amari_1');targetElement=elements.spans['amari_10']; message=`③ ひく:${problem.wararerukazu}-${answers.k1}は?`; break;
+                        case 4: message = answers.amari > 0 ? `やったね！${answers.finalShou} あまり ${answers.amari}！` : `やったね！答えは ${answers.finalShou}！`; if(answers.amari > 0) elements.spans['amari_output'].textContent = answers.amari; updateMessage(message, 'correct'); elements.keypadArea.style.display = 'none'; elements.nextProblemBtn.style.display = 'block'; return;
+                    }
+                }
+            } else if (problem.type === '3d1d') {
+                switch(step) {
+                    case 1: targetElement = elements.spans['s100']; message = `① たてる: ${r_str[0]}÷${problem.warukazu}は?`; break;
+                    case 2: placeElement('', 3, 3, 'k1'); targetElement = elements.spans['k1']; message = `② かける: ${answers.s100}×${problem.warukazu}は?`; break;
+                    case 3: placeElement('', 3, 3, null, 1, 'div').className = 'process-line'; placeElement('', 4, 3, 'h1'); targetElement = elements.spans['h1']; message = `③ ひく: ${r_str[0]}-${answers.k1}は?`; break;
+                    case 4: placeElement(r_str[1], 4, 4); updateMessage(`④ おろす: ${r_str[1]}`, 'normal'); setTimeout(() => { state.step++; updateStep(); }, 1000); return;
+                    case 5: targetElement = elements.spans['s10']; message = `① たてる: ${answers.o1}÷${problem.warukazu}は?`; break;
+                    case 6: placeElement('', 5, 3, 'k2_10'); placeElement('', 5, 4, 'k2_1'); targetElement = elements.spans['k2_10']; message = `② かける: ${answers.s10}×${problem.warukazu}は?`; break;
+                    case 7: placeElement('', 5, 3, null, 2, 'div').className = 'process-line'; placeElement('', 6, 4, 'h2_1'); targetElement = elements.spans['h2_1']; message = `③ ひく: ${answers.o1}-${answers.k2}は?`; break;
+                    case 8: placeElement(r_str[2], 6, 5); updateMessage(`④ おろす: ${r_str[2]}`, 'normal'); setTimeout(() => { state.step++; updateStep(); }, 1000); return;
+                    case 9: targetElement = elements.spans['s1']; message = `① たてる: ${answers.o2}÷${problem.warukazu}は?`; break;
+                    case 10: placeElement('', 7, 4, 'k3_10'); placeElement('', 7, 5, 'k3_1'); targetElement = elements.spans['k3_10']; message = `② かける: ${answers.s1}×${problem.warukazu}は?`; break;
+                    case 11: placeElement('', 7, 4, null, 2, 'div').className = 'process-line'; placeElement('', 8, 5, 'amari'); targetElement = elements.spans['amari']; message = `③ ひく: ${answers.o2}-${answers.k3}は?`; break;
+                    case 12: message = answers.amari > 0 ? `やったね！${answers.finalShou} あまり ${answers.amari}！` : `やったね！答えは ${answers.finalShou}！`; if(answers.amari > 0) elements.spans['amari_output'].textContent = answers.amari; updateMessage(message, 'correct'); elements.keypadArea.style.display = 'none'; elements.nextProblemBtn.style.display = 'block'; return;
+                }
+            } else if (problem.type === '2d1d') {
+                switch (step) {
+                    case 1: targetElement = elements.spans['s10']; message = `① たてる:${r_str[0]}÷${problem.warukazu}は?`; break;
+                    case 2: placeElement('', 3, 3, 'k1'); targetElement = elements.spans['k1']; message = `② かける:${answers.s10}×${problem.warukazu}は?`; break;
+                    case 3: placeElement('', 3, 3, null, 1, 'div').className = 'process-line'; placeElement('', 4, 3, 'h1'); targetElement = elements.spans['h1']; message = `③ ひく:${r_str[0]}-${answers.k1}は?`; break;
+                    case 4: placeElement(r_str[1], 4, 4); updateMessage(`④ おろす:${r_str[1]}`, 'normal'); setTimeout(() => { state.step++; updateStep(); }, 1000); return;
+                    case 5: targetElement = elements.spans['s1']; message = `① たてる:${answers.o1}÷${problem.warukazu}は?`; break;
+                    case 6: placeElement('', 5, 3, 'k2_10'); placeElement('', 5, 4, 'k2_1'); targetElement = elements.spans['k2_10']; message = `② かける:${answers.s1}×${problem.warukazu}は?`; break;
+                    case 7: placeElement('', 5, 3, null, 2, 'div').className = 'process-line'; placeElement('', 6, 4, 'amari'); targetElement = elements.spans['amari']; message = `③ ひく:${answers.o1}-${answers.k2}は?`; break;
+                    case 8: message = answers.amari > 0 ? `やったね！${answers.finalShou} あまり ${answers.amari}！` : `やったね！答えは ${answers.finalShou}！`; if(answers.amari > 0) elements.spans['amari_output'].textContent = answers.amari; updateMessage(message, 'correct'); elements.keypadArea.style.display = 'none'; elements.nextProblemBtn.style.display = 'block'; return;
+                }
+            } else { // 2d2d
+                 switch (step) {
+                    case 1: targetElement = elements.spans['s1']; message = `① たてる:${problem.wararerukazu}÷${problem.warukazu}は?`; break;
+                    case 2: placeElement('', 3, 4, 'k_10'); placeElement('', 3, 5, 'k_1'); targetElement = elements.spans['k_10']; message = `② かける:${answers.shou}×${problem.warukazu}は?`; break;
+                    case 3: placeElement('', 3, 4, null, 2, 'div').className = 'process-line'; placeElement('', 4, 5, 'amari'); targetElement = elements.spans['amari']; message = `③ ひく:${problem.wararerukazu}-${answers.kakeru}は?`; break;
+                    case 4: message = answers.amari > 0 ? `やったね！${answers.shou} あまり ${answers.amari}！` : `やったね！答えは ${answers.shou}！`; if(answers.amari > 0) elements.spans['amari_output'].textContent = answers.amari; updateMessage(message, 'correct'); elements.keypadArea.style.display = 'none'; elements.nextProblemBtn.style.display = 'block'; return;
+                 }
+            }
+            elements.activeInput = targetElement;
+            elements.activeInput.classList.add('active-input');
+            updateMessage(message, 'normal');
+        }
+
+        function checkAnswer() {
+            if (!elements.activeInput || state.currentInput === "") return;
+            const userInput = parseInt(state.currentInput, 10);
+            let correctAnswer;
+            const { problem, step, answers } = state;
+
+            if (problem.type === '3d2d') {
+                if (answers.isShou2Keta) {
+                    switch(step) { case 1: correctAnswer=answers.s10; break; case 2: correctAnswer=answers.k1; break; case 3: correctAnswer=answers.h1; break; case 5: correctAnswer=answers.s1; break; case 6: correctAnswer=answers.k2; break; case 7: correctAnswer=answers.amari; break; }
+                } else {
+                    switch(step) { case 1: correctAnswer=answers.s1; break; case 2: correctAnswer=answers.k1; break; case 3: correctAnswer=answers.amari; break; }
+                }
+            } else if (problem.type === '3d1d') {
+                switch(step) { case 1: correctAnswer=answers.s100; break; case 2: correctAnswer=answers.k1; break; case 3: correctAnswer=answers.h1; break; case 5: correctAnswer=answers.s10; break; case 6: correctAnswer=answers.k2; break; case 7: correctAnswer=answers.h2; break; case 9: correctAnswer=answers.s1; break; case 10: correctAnswer=answers.k3; break; case 11: correctAnswer=answers.amari; break; }
+            } else if (problem.type === '2d1d') {
+                switch (step) { case 1: correctAnswer = answers.s10; break; case 2: correctAnswer = answers.k1; break; case 3: correctAnswer = answers.h1; break; case 5: correctAnswer = answers.s1; break; case 6: correctAnswer = answers.k2; break; case 7: correctAnswer = answers.amari; break; }
+            } else { // 2d2d
+                switch(step) { case 1: correctAnswer=answers.shou; break; case 2: correctAnswer=answers.kakeru; break; case 3: correctAnswer=answers.amari; break; }
+            }
+
+            if (userInput === correctAnswer) {
+                const activeId = elements.activeInput.id;
+                const valueStr = String(userInput);
+                
+                if (activeId.includes('_100')) { const d = valueStr.padStart(3,' ').split(''); elements.spans['k1_100'].textContent=d[0]; elements.spans['k1_10'].textContent=d[1]; elements.spans['k1_1'].textContent=d[2];}
+                else if (activeId.includes('_10')) { const d = valueStr.padStart(2,' ').split(''); elements.spans[activeId].textContent=d[0]; elements.spans[activeId.replace('_10','_1')].textContent=d[1]; }
+                else { elements.activeInput.textContent = valueStr; }
+                
+                elements.activeInput.classList.remove('active-input'); elements.activeInput = null;
+                updateMessage("せいかい！そのちょうし！", 'correct');
+                
+                // 最後のステップで正解した場合にシールを追加
+                const isLastStep = (step === 11 && problem.type === '3d1d') ||
+                                   (step === 7 && problem.type === '2d1d') ||
+                                   (step === 3 && problem.type === '2d2d') ||
+                                   (step === 7 && problem.type === '3d2d' && answers.isShou2Keta) ||
+                                   (step === 3 && problem.type === '3d2d' && !answers.isShou2Keta);
+
+                if (isLastStep) {
+                    totalCorrect++;
+                    addStamp();
+                }
+
+                setTimeout(() => { state.step++; updateStep(); }, 1000);
+            } else {
+                updateMessage("おしい！もういちど かんがえてみよう。", 'wrong');
+                setTimeout(() => { elements.activeInput.textContent = ""; state.currentInput = ""; updateMessage("さあ、もう一度！", 'normal'); }, 1500);
+            }
+        }
+        
+        function handleKeyPress(key) { if (!elements.activeInput || state.currentInput.length >= 3) return; state.currentInput += key; elements.activeInput.textContent = state.currentInput; }
+        function handleBackspace() { if (!elements.activeInput) return; state.currentInput = state.currentInput.slice(0, -1); elements.activeInput.textContent = state.currentInput; }
+        function updateMessage(text, charState) { elements.messageBox.textContent = text; elements.character.textContent = characterEmojis[charState]; elements.character.classList.remove('correct-animation'); if (charState === 'correct') { void elements.character.offsetWidth; elements.character.classList.add('correct-animation'); } }
+        
+        window.onload = setupLevelSelection; // ページ読み込み時にレベル選択画面を準備
+    </script>
+</body>
+</html>
